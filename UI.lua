@@ -22,6 +22,14 @@ CustomFunctions.SetHidden = sethiddenproperty or set_hidden_property or set_hidd
 CustomFunctions.GetHidden = gethiddenproperty or get_hidden_property or get_hidden_prop
 CustomFunctions.SetSimulation = setsimulationradius or set_simulation_radius
 
+-- [[ UI Service ]] --
+local UserInterfaceService
+if Services.RunService:IsStudio() then
+	UserInterfaceService = LocalPlayer.PlayerGui
+else
+	UserInterfaceService = game:GetService("CoreGui")
+end
+
 --[[
    _____         .__        
   /     \ _____  |__| ____  
@@ -33,19 +41,6 @@ CustomFunctions.SetSimulation = setsimulationradius or set_simulation_radius
 
 -- // TigronFE \\ --
 local TigronFE = {}
-
--- [[ ScreenGui ]] --
-TigronFE.ScreenGui = Instance.new("ScreenGui")
-TigronFE.ScreenGui.Name = "Tigron Hub"
-
-if Services.RunService:IsStudio() then
-	TigronFE.ScreenGui.Parent = LocalPlayer.PlayerGui
-else
-	TigronFE.ScreenGui.Parent = game:GetService("CoreGui")
-end
-
--- [[ Bindable Function ]] --
-TigronFE.CommandExecute = Instance.new("BindableFunction")
 
 -- [[ Functions ]] --
 function TigronFE.new(Class, Properties)
@@ -82,6 +77,12 @@ function TigronFE.Tween(Object, TweenInformation, Goal, Data)
 	return NewTween
 end
 
+-- [[ ScreenGui ]] --
+TigronFE.ScreenGui = TigronFE.new("ScreenGui", {Name = "Tigron Hub", Parent = UserInterfaceService})
+
+-- [[ Bindable Function ]] --
+TigronFE.CommandExecute = TigronFE.new("BindableFunction", {Name = "CommandExecute"})
+
 function TigronFE.CreateUI(ChangeLogContent, CommandList)
 	-- // TIGRON HUB \\ --
 	local UserInterface = {}
@@ -97,7 +98,10 @@ function TigronFE.CreateUI(ChangeLogContent, CommandList)
 	local GeneralPositions = {}
 	GeneralPositions.CollapsedGoal = {Position = UDim2.new(0.5, 0, 1.25, 0), AnchorPoint = Vector2.new(0.5, 0)}
 	GeneralPositions.ExpandedGoal = {Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5)}
-
+	
+	local NetworkInfo = {}
+	NetworkInfo.Toggled = false
+	
 	local ChangeLogInfo = {}
 	ChangeLogInfo.Toggled = false
 
@@ -546,10 +550,32 @@ function TigronFE.CreateUI(ChangeLogContent, CommandList)
 
 	-- [ Button Toggles ] --
 
-	-- Toggle Functions --
+	-- Toggle Network --
+	local function ToggleNetwork(Value)
+		NetworkInfo.Toggled = not NetworkInfo.Toggled
+		if Value ~= nil then
+			NetworkInfo.Toggled = Value
+		end
+
+		local Image = "rbxassetid://4370317928"
+		local Info = {Rotation = 0, ImageColor3 = Color3.new(1, 1, 1)}
+		local Text = "Network"
+		if NetworkInfo.Toggled == true then
+			Image = "rbxassetid://3944680095"
+			Info.Rotation = 360
+			Info.ImageColor3 = Color3.new(0, 1, 0)
+			Text = "Simulating..."
+		end
+		TigronFE.Tween(CommandBar.Network.Icon, TweenInfo.new(0.5), Info)
+		wait()
+		CommandBar.Network.Title.Text = Text
+		CommandBar.Network.Icon.Image = Image
+	end
+	
+	-- Toggle ChangeLog --
 	local function ToggleChangeLog(Value)
 		ChangeLogInfo.Toggled = not ChangeLogInfo.Toggled
-		if Value == true or Value == false then
+		if Value ~= nil then
 			ChangeLogInfo.Toggled = Value
 		end
 
@@ -565,10 +591,11 @@ function TigronFE.CreateUI(ChangeLogContent, CommandList)
 		wait()
 		CommandBar.Changelog.Icon.Image = Image
 	end
-
+	
+	-- Toggle Commands --
 	local function ToggleCommands(Value)
 		CommandsInfo.Toggled = not CommandsInfo.Toggled
-		if Value == true or Value == false then
+		if Value ~= nil then
 			CommandsInfo.Toggled = Value
 		end
 
@@ -584,10 +611,11 @@ function TigronFE.CreateUI(ChangeLogContent, CommandList)
 		wait()
 		CommandBar.Commands.Icon.Image = Image
 	end
-
+	
+	-- Toggle Settings --
 	local function ToggleSettings(Value)
 		SettingsInfo.Toggled = not SettingsInfo.Toggled
-		if Value == true or Value == false then
+		if Value ~= nil then
 			SettingsInfo.Toggled = Value
 		end
 
@@ -602,12 +630,15 @@ function TigronFE.CreateUI(ChangeLogContent, CommandList)
 		TigronFE.Tween(CommandBar.Settings.Icon, TweenInfo.new(0.5), Info)
 		wait()
 		CommandBar.Settings.Icon.Image = Image
+		
+		settings().Physics.AllowSleep = false
+		settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.Disabled
 	end
 
 	-- Toggle Events --
 	CommandBar.Network.Button.InputBegan:Connect(function(Input)
 		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-			--bruh
+			ToggleNetwork()
 		end
 	end)
 
@@ -646,14 +677,18 @@ function TigronFE.CreateUI(ChangeLogContent, CommandList)
 	Settings.Close.MouseButton1Click:Connect(function()
 		ToggleSettings(false)
 	end)
-	
-	
-	CommandBar.Network.Button.InputBegan:Connect(function(Input)
-		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-			if CustomFunctions.SetSimulation then
-				CustomFunctions.SetSimulation(1e308)
-			else
-				CustomFunctions.SetHidden(LocalPlayer, "SimulationRadius", 1e308)
+
+	-- Loops --	
+	Services.RunService.RenderStepped:Connect(function()
+		if NetworkInfo.Toggled == true then
+			for i,v in ipairs(Services.Players:GetPlayers()) do
+				if v ~= LocalPlayer then
+					CustomFunctions.SetHidden(v, "MaximumSimulationRadius", 0.1)
+					CustomFunctions.SetHidden(v, "SimulationRadius", 0.1)
+				end
+				CustomFunctions.SetHidden(LocalPlayer, "MaximumSimulationRadius", math.huge)
+				CustomFunctions.SetSimulation(math.huge)
+				LocalPlayer.ReplicationFocus = workspace
 			end
 		end
 	end)
