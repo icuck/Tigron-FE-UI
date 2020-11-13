@@ -570,7 +570,13 @@ function TigronFE.CreateUI(ChangeLogContent, CommandList)
 		wait()
 		CommandBar.Network.Title.Text = Text
 		CommandBar.Network.Icon.Image = Image
+		
+		settings().Physics.AllowSleep = false
+		settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.Disabled
 	end
+	-- <eof>
+	
+
 	
 	-- Toggle ChangeLog --
 	local function ToggleChangeLog(Value)
@@ -630,9 +636,6 @@ function TigronFE.CreateUI(ChangeLogContent, CommandList)
 		TigronFE.Tween(CommandBar.Settings.Icon, TweenInfo.new(0.5), Info)
 		wait()
 		CommandBar.Settings.Icon.Image = Image
-		
-		settings().Physics.AllowSleep = false
-		settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.Disabled
 	end
 
 	-- Toggle Events --
